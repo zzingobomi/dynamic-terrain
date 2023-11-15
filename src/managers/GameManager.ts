@@ -16,6 +16,7 @@ import {
   StandardMaterial,
 } from "@babylonjs/core";
 import { Noise } from "@src/perlin/Noise";
+import { DynamicTerrain } from "@src/terrain/DynamicTerrain";
 //import "../js/dynamicTerrain.js";
 
 export class GameManager {
@@ -31,6 +32,7 @@ export class GameManager {
   public async Init() {
     await this.initScene();
     await this.initEnvironment();
+    //await this.initRibbonTerrain();
     await this.initDynamicTerrain();
 
     window.onresize = () => {
@@ -60,29 +62,29 @@ export class GameManager {
       new Vector3(0, 1, 0),
       this.scene
     );
-    ambientLight.intensity = 1;
-    ambientLight.groundColor = new Color3(0.13, 0.13, 0.13);
+    ambientLight.intensity = 0.75;
+    //ambientLight.groundColor = new Color3(0.13, 0.13, 0.13);
     ambientLight.specular = Color3.Black();
 
     // fog
-    this.scene.fogMode = Scene.FOGMODE_LINEAR;
-    this.scene.fogStart = 60.0;
-    this.scene.fogEnd = 120.0;
-    this.scene.fogColor = new Color3(0.9, 0.9, 0.85);
+    // this.scene.fogMode = Scene.FOGMODE_LINEAR;
+    // this.scene.fogStart = 60.0;
+    // this.scene.fogEnd = 120.0;
+    // this.scene.fogColor = new Color3(0.9, 0.9, 0.85);
 
     // directional light
-    const light = new DirectionalLight(
-      "DirectionalLight",
-      new Vector3(-1, -2, -1),
-      this.scene
-    );
-    light.position = new Vector3(100, 100, 100);
-    light.radius = 0.27;
-    light.intensity = 2.5;
-    light.autoCalcShadowZBounds = true;
+    // const light = new DirectionalLight(
+    //   "DirectionalLight",
+    //   new Vector3(-1, -2, -1),
+    //   this.scene
+    // );
+    // light.position = new Vector3(100, 100, 100);
+    // light.radius = 0.27;
+    // light.intensity = 2.5;
+    // light.autoCalcShadowZBounds = true;
   }
 
-  private async initDynamicTerrain() {
+  private async initRibbonTerrain() {
     const mapSubX = 1000; // point number on X axis
     const mapSubZ = 800; // point number on Z axis
     const seed = 0.3; // seed
@@ -117,7 +119,43 @@ export class GameManager {
     );
     map.position.y = -1.0;
     const mapMaterial = new StandardMaterial("mm", this.scene);
+    mapMaterial.wireframe = true;
+    mapMaterial.alpha = 0.5;
     map.material = mapMaterial;
+  }
+
+  private async initDynamicTerrain() {
+    const mapSubX = 500;
+    const mapSubZ = 300;
+    const terrainSub = 100;
+
+    const terrainMaterial = new StandardMaterial("materialGround", this.scene);
+    terrainMaterial.diffuseColor = new Color3(0.15, 0.9, 0.25);
+    terrainMaterial.wireframe = true;
+
+    // map creation
+    const mapData = new Float32Array(mapSubX * mapSubZ * 3);
+    for (var l = 0; l < mapSubZ; l++) {
+      for (var w = 0; w < mapSubX; w++) {
+        mapData[3 * (l * mapSubX + w)] = (w - mapSubX * 0.5) * 2.0;
+        mapData[3 * (l * mapSubX + w) + 1] =
+          (w / (l + 1)) * Math.sin(l / 2) * Math.cos(w / 2) * 2.0;
+        mapData[3 * (l * mapSubX + w) + 2] = (l - mapSubZ * 0.5) * 2.0;
+      }
+    }
+
+    // terrain creation
+    const params = {
+      mapData: mapData,
+      mapSubX: mapSubX,
+      mapSubZ: mapSubZ,
+      terrainSub: terrainSub,
+    };
+    const terrain = new DynamicTerrain("terrain", params, this.scene);
+    terrain.mesh.material = terrainMaterial;
+    terrain.subToleranceX = 8;
+    terrain.subToleranceZ = 8;
+    terrain.LODLimits = [4, 3, 2, 1, 1];
   }
 
   private render() {
