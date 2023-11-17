@@ -14,9 +14,13 @@ import {
   FreeCamera,
   MeshBuilder,
   StandardMaterial,
+  Mesh,
+  ArcRotateCamera,
+  AxesViewer,
 } from "@babylonjs/core";
 import { Noise } from "@src/perlin/Noise";
 import { DynamicTerrain } from "@src/terrain/DynamicTerrain";
+import { DynamicTerrainV1 } from "@src/terrain/DynamicTerrainV1";
 //import "../js/dynamicTerrain.js";
 
 export class GameManager {
@@ -33,7 +37,8 @@ export class GameManager {
     await this.initScene();
     await this.initEnvironment();
     //await this.initRibbonTerrain();
-    await this.initDynamicTerrain();
+    //await this.initDynamicTerrain();
+    await this.initDynamicTerrainV1();
 
     window.onresize = () => {
       this.engine.resize();
@@ -48,8 +53,18 @@ export class GameManager {
     });
 
     this.scene = new Scene(this.engine);
-    const camera = new FreeCamera("camera", new Vector3(0, 1, -5), this.scene);
+    const camera = new FreeCamera("camera", new Vector3(0, 50, 0), this.scene);
+    camera.target = new Vector3(0, 0, 0);
     camera.attachControl();
+
+    // const camera = new ArcRotateCamera(
+    //   "Camera",
+    //   (3 * Math.PI) / 2,
+    //   (3 * Math.PI) / 8,
+    //   30,
+    //   Vector3.Zero()
+    // );
+    // camera.attachControl();
   }
 
   private async initEnvironment() {
@@ -65,6 +80,9 @@ export class GameManager {
     ambientLight.intensity = 0.75;
     //ambientLight.groundColor = new Color3(0.13, 0.13, 0.13);
     ambientLight.specular = Color3.Black();
+
+    // Axes
+    const axes = new AxesViewer(this.scene, 1);
 
     // fog
     // this.scene.fogMode = Scene.FOGMODE_LINEAR;
@@ -85,8 +103,8 @@ export class GameManager {
   }
 
   private async initRibbonTerrain() {
-    const mapSubX = 1000; // point number on X axis
-    const mapSubZ = 800; // point number on Z axis
+    const mapSubX = 30; // point number on X axis
+    const mapSubZ = 30; // point number on Z axis
     const seed = 0.3; // seed
     const noiseScale = 0.03; // noise frequency
     const elevationScale = 6.0;
@@ -117,45 +135,118 @@ export class GameManager {
       { pathArray: paths, sideOrientation: 2 },
       this.scene
     );
+    //map.position.y = -1.0;
+    const mapMaterial = new StandardMaterial("mm", this.scene);
+    mapMaterial.wireframe = true;
+    //mapMaterial.alpha = 0.5;
+    map.material = mapMaterial;
+  }
+
+  private async initDynamicTerrain() {
+    const mapSubX = 10; // point number on X axis
+    const mapSubZ = 10; // point number on Z axis
+    const seed = 0.3; // seed
+    const noiseScale = 0.03; // noise frequency
+    const elevationScale = 6.0;
+    const noise = new Noise();
+    noise.seed(seed);
+    const mapData = new Float32Array(mapSubX * mapSubZ * 3);
+
+    const paths = []; // array for the ribbon model
+    for (let l = 0; l < mapSubZ; l++) {
+      const path = []; // only for the ribbon
+      for (let w = 0; w < mapSubX; w++) {
+        const x = (w - mapSubX * 0.5) * 2.0;
+        const z = (l - mapSubZ * 0.5) * 2.0;
+        let y = noise.simplex2(x * noiseScale, z * noiseScale);
+        y *= (0.5 + y) * y * elevationScale; // let's increase a bit the noise computed altitude
+
+        mapData[3 * (l * mapSubX + w)] = x;
+        mapData[3 * (l * mapSubX + w) + 1] = y;
+        mapData[3 * (l * mapSubX + w) + 2] = z;
+
+        path.push(new Vector3(x, y, z));
+      }
+      paths.push(path);
+    }
+
+    const map = MeshBuilder.CreateRibbon(
+      "m",
+      { pathArray: paths, sideOrientation: 2 },
+      this.scene
+    );
     map.position.y = -1.0;
     const mapMaterial = new StandardMaterial("mm", this.scene);
     mapMaterial.wireframe = true;
     mapMaterial.alpha = 0.5;
     map.material = mapMaterial;
+
+    const terrainSub = 5; // 100 terrain subdivisions
+    const params = {
+      mapData: mapData, // data map declaration : what data to use ?
+      mapSubX: mapSubX, // how are these data stored by rows and columns
+      mapSubZ: mapSubZ,
+      terrainSub: terrainSub, // how many terrain subdivisions wanted
+    };
+    const terrain = new DynamicTerrain("t", params, this.scene);
+    const terrainMaterial = new StandardMaterial("tm", this.scene);
+    terrainMaterial.diffuseColor = Color3.Green();
+    //terrainMaterial.alpha = 0.8;
+    terrainMaterial.wireframe = true;
+    terrain.mesh.material = terrainMaterial;
   }
 
-  private async initDynamicTerrain() {
-    const mapSubX = 500;
-    const mapSubZ = 300;
-    const terrainSub = 100;
-
-    const terrainMaterial = new StandardMaterial("materialGround", this.scene);
-    terrainMaterial.diffuseColor = new Color3(0.15, 0.9, 0.25);
-    terrainMaterial.wireframe = true;
-
-    // map creation
+  private async initDynamicTerrainV1() {
+    const mapSubX = 20; // point number on X axis
+    const mapSubZ = 20; // point number on Z axis
+    const seed = 0.3; // seed
+    const noiseScale = 0.03; // noise frequency
+    const elevationScale = 6.0;
+    const noise = new Noise();
+    noise.seed(seed);
     const mapData = new Float32Array(mapSubX * mapSubZ * 3);
-    for (var l = 0; l < mapSubZ; l++) {
-      for (var w = 0; w < mapSubX; w++) {
-        mapData[3 * (l * mapSubX + w)] = (w - mapSubX * 0.5) * 2.0;
-        mapData[3 * (l * mapSubX + w) + 1] =
-          (w / (l + 1)) * Math.sin(l / 2) * Math.cos(w / 2) * 2.0;
-        mapData[3 * (l * mapSubX + w) + 2] = (l - mapSubZ * 0.5) * 2.0;
+
+    const paths = []; // array for the ribbon model
+    for (let l = 0; l < mapSubZ; l++) {
+      const path = []; // only for the ribbon
+      for (let w = 0; w < mapSubX; w++) {
+        const x = (w - mapSubX * 0.5) * 2.0;
+        const z = (l - mapSubZ * 0.5) * 2.0;
+        let y = noise.simplex2(x * noiseScale, z * noiseScale);
+        y *= (0.5 + y) * y * elevationScale; // let's increase a bit the noise computed altitude
+
+        mapData[3 * (l * mapSubX + w)] = x;
+        mapData[3 * (l * mapSubX + w) + 1] = y;
+        mapData[3 * (l * mapSubX + w) + 2] = z;
+
+        path.push(new Vector3(x, y, z));
       }
+      paths.push(path);
     }
 
-    // terrain creation
+    const map = MeshBuilder.CreateRibbon(
+      "m",
+      { pathArray: paths, sideOrientation: 2 },
+      this.scene
+    );
+    map.position.y = -1.0;
+    const mapMaterial = new StandardMaterial("mm", this.scene);
+    mapMaterial.wireframe = true;
+    mapMaterial.alpha = 0.5;
+    map.material = mapMaterial;
+
+    const terrainSub = 5;
     const params = {
       mapData: mapData,
       mapSubX: mapSubX,
       mapSubZ: mapSubZ,
       terrainSub: terrainSub,
     };
-    const terrain = new DynamicTerrain("terrain", params, this.scene);
+    const terrain = new DynamicTerrainV1("t", params, this.scene);
+    const terrainMaterial = new StandardMaterial("tm", this.scene);
+    terrainMaterial.diffuseColor = Color3.Green();
+    terrainMaterial.wireframe = true;
     terrain.mesh.material = terrainMaterial;
-    terrain.subToleranceX = 8;
-    terrain.subToleranceZ = 8;
-    terrain.LODLimits = [4, 3, 2, 1, 1];
   }
 
   private render() {
