@@ -23,6 +23,8 @@ import { DynamicTerrain } from "@src/terrain/DynamicTerrain";
 import { DynamicTerrainV1 } from "@src/terrain/DynamicTerrainV1";
 //import "../js/dynamicTerrain.js";
 
+// TODO: 기본 LOD가 적용되어 있나? 그래서 작은 사이즈일때 가장자리 위치가 안맞나..?
+// TODO: mod 로 계속 나누는 이유가 무한 반복을 위해서인가..?
 export class GameManager {
   // babylon
   public canvas: HTMLCanvasElement;
@@ -37,8 +39,8 @@ export class GameManager {
     await this.initScene();
     await this.initEnvironment();
     //await this.initRibbonTerrain();
-    //await this.initDynamicTerrain();
-    await this.initDynamicTerrainV1();
+    await this.initDynamicTerrain();
+    //await this.initDynamicTerrainV1();
 
     window.onresize = () => {
       this.engine.resize();
@@ -143,10 +145,10 @@ export class GameManager {
   }
 
   private async initDynamicTerrain() {
-    const mapSubX = 10; // point number on X axis
-    const mapSubZ = 10; // point number on Z axis
+    const mapSubX = 20; // point number on X axis
+    const mapSubZ = 20; // point number on Z axis
     const seed = 0.3; // seed
-    const noiseScale = 0.03; // noise frequency
+    const noiseScale = 0.3; // noise frequency
     const elevationScale = 6.0;
     const noise = new Noise();
     noise.seed(seed);
@@ -175,13 +177,13 @@ export class GameManager {
       { pathArray: paths, sideOrientation: 2 },
       this.scene
     );
-    map.position.y = -1.0;
+    //map.position.y = -1.0;
     const mapMaterial = new StandardMaterial("mm", this.scene);
     mapMaterial.wireframe = true;
     mapMaterial.alpha = 0.5;
     map.material = mapMaterial;
 
-    const terrainSub = 5; // 100 terrain subdivisions
+    const terrainSub = 6; // 100 terrain subdivisions
     const params = {
       mapData: mapData, // data map declaration : what data to use ?
       mapSubX: mapSubX, // how are these data stored by rows and columns
@@ -200,7 +202,7 @@ export class GameManager {
     const mapSubX = 20; // point number on X axis
     const mapSubZ = 20; // point number on Z axis
     const seed = 0.3; // seed
-    const noiseScale = 0.03; // noise frequency
+    const noiseScale = 0.3; // noise frequency
     const elevationScale = 6.0;
     const noise = new Noise();
     noise.seed(seed);
@@ -229,13 +231,13 @@ export class GameManager {
       { pathArray: paths, sideOrientation: 2 },
       this.scene
     );
-    map.position.y = -1.0;
+    //map.position.y = -1.0;
     const mapMaterial = new StandardMaterial("mm", this.scene);
     mapMaterial.wireframe = true;
     mapMaterial.alpha = 0.5;
     map.material = mapMaterial;
 
-    const terrainSub = 5;
+    const terrainSub = 6;
     const params = {
       mapData: mapData,
       mapSubX: mapSubX,

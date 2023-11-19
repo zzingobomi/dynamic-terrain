@@ -1,4 +1,13 @@
-import { Camera, Mesh, MeshBuilder, Scene, Vector3 } from "@babylonjs/core";
+import {
+  Camera,
+  FloatArray,
+  IndicesArray,
+  Mesh,
+  MeshBuilder,
+  Scene,
+  Vector3,
+  VertexBuffer,
+} from "@babylonjs/core";
 
 export class DynamicTerrainV1 {
   name: string;
@@ -18,6 +27,8 @@ export class DynamicTerrainV1 {
   private _averageSubSizeZ: number;
   private _mapSizeX: number;
   private _mapSizeZ: number;
+  private _indices: IndicesArray;
+  private _positions: FloatArray;
 
   constructor(
     name: string,
@@ -53,6 +64,7 @@ export class DynamicTerrainV1 {
     let terrainPath;
     let y = 0.0;
     const terrainData = [];
+    // 이때 아예 딱 맞게 리본을 못만드나..? 인덱스 계산해서?
     for (let j = 0; j <= this._terrainSub; j++) {
       terrainPath = [];
       for (let i = 0; i <= this._terrainSub; i++) {
@@ -85,6 +97,8 @@ export class DynamicTerrainV1 {
       ribbonOptions,
       this._scene
     );
+    this._indices = this._terrain.getIndices();
+    this._positions = this._terrain.getVerticesData(VertexBuffer.PositionKind);
 
     this.update(true);
 
@@ -105,9 +119,32 @@ export class DynamicTerrainV1 {
   }
 
   private _updateTerrain(updateSize: boolean) {
+    let stepJ = 0 | 0;
+    let stepI = 0 | 0;
+
     if (updateSize) {
       this.updateTerrainSize();
     }
+
+    let zIndex = 0 | 0;
+    let xIndex = 0 | 0;
+    for (let j = 0 | 0; j <= this._terrainSub; j++) {
+      //zIndex = this._mod(this._deltaSubZ + stepJ, this._mapSubZ);
+    }
+
+    // 그냥 카메라 위치에서 중점 빼고 ribbin 의 path 를 계속 추가하는 방식은..?
+    // 어차피 x, z 너비가 고정되어 있다고 하고..
+    // geometry
+    // positions[ribbonPosInd1] = averageSubSizeX * stepI;
+    // positions[ribbonPosInd2] = mapData[posIndex2];
+    // positions[ribbonPosInd3] = averageSubSizeZ * stepJ;
+
+    // this._terrain.updateVerticesData(
+    //   VertexBuffer.PositionKind,
+    //   positions,
+    //   false,
+    //   false
+    // );
   }
 
   updateTerrainSize(): DynamicTerrainV1 {
